@@ -32,13 +32,14 @@ public class MainActivity extends AppCompatActivity implements LSDRenderer.Rende
     public static final String TAG = MainActivity.class.getSimpleName();
 
     private static VideoSource sVideoSource;
-    private String          mfileDir;
-    private RelativeLayout  mLayout;
-    private SurfaceView     mRajawaliSurface;
-    private Renderer        mRenderer;
-    private ImageView       mImageView;
-    private int[]           mResolution;
-    private boolean         mStarted = false;
+    private String mfileDir;
+    private RelativeLayout mLayout;
+    private SurfaceView mRajawaliSurface;
+    private Renderer mRenderer;
+    private ImageView mImageView;
+    private int[] mResolution;
+    private boolean mStarted = false;
+    private boolean isFirst = true;
 
     static {
         System.loadLibrary("g2o_core");
@@ -78,7 +79,7 @@ public class MainActivity extends AppCompatActivity implements LSDRenderer.Rende
         sVideoSource.start();
 
         setContentView(mLayout);
-        Toast.makeText(this, "请对准目标按下音量(+)", Toast.LENGTH_LONG).show();
+        Toast.makeText(this, "Press Volume(+) to Start", Toast.LENGTH_LONG).show();
     }
 
     @Override
@@ -89,12 +90,20 @@ public class MainActivity extends AppCompatActivity implements LSDRenderer.Rende
             System.exit(0);
         } else if (keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
             Toast.makeText(this, "Start", Toast.LENGTH_SHORT).show();
-            mStarted = true;
-            TARNativeInterface.nativeStart();
+            if (mStarted) {
+            } else {
+                mStarted = true;
+                if (isFirst) {
+                    TARNativeInterface.nativeStart();
+                    isFirst = false;
+                }
+            }
             return true;
         } else if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
-            // TODO: reset
-            Toast.makeText(this, "Reset!", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Stop!", Toast.LENGTH_SHORT).show();
+            if (mStarted) {
+                mStarted = false;
+            }
             return true;
         }
         return true;
@@ -168,28 +177,24 @@ public class MainActivity extends AppCompatActivity implements LSDRenderer.Rende
         } catch (IOException e) {
             Log.e(TAG, "copyAssets: Failed to get asset file list.", e);
         }
-        for(String filename : files) {
-            if(!filename.endsWith(".cfg"))//hack to skip non cfg files
+        for (String filename : files) {
+            if (!filename.endsWith(".cfg"))//hack to skip non cfg files
                 continue;
             InputStream in = null;
             OutputStream out = null;
             try {
                 in = assetManager.open(filename);
                 File outFile = new File(dir, filename);
-                if(outFile.exists())
-                {
+                if (outFile.exists()) {
                     Log.d(TAG, "copyAssets: File exists: " + filename);
-                }
-                else
-                {
+                } else {
                     out = new FileOutputStream(outFile);
                     copyFile(in, out);
                     Log.d(TAG, "copyAssets: File copied: " + filename);
                 }
-            } catch(IOException e) {
+            } catch (IOException e) {
                 Log.e(TAG, "copyAssets: Failed to copy asset file: " + filename, e);
-            }
-            finally {
+            } finally {
                 if (in != null) {
                     try {
                         in.close();
@@ -211,7 +216,7 @@ public class MainActivity extends AppCompatActivity implements LSDRenderer.Rende
     public static void copyFile(InputStream in, OutputStream out) throws IOException {
         byte[] buffer = new byte[1024];
         int read;
-        while((read = in.read(buffer)) != -1){
+        while ((read = in.read(buffer)) != -1) {
             out.write(buffer, 0, read);
         }
     }
